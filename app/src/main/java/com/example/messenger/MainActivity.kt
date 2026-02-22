@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.messenger.data.FakeMessengerRepository
+import com.example.messenger.data.LocalMessagesCache
 import com.example.messenger.data.SecureCredentialsStorage
 import com.example.messenger.model.Chat
 import com.example.messenger.ui.ChatListScreen
@@ -32,7 +34,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val appViewModel: AppViewModel = viewModel(factory = SimpleFactory {
-                AppViewModel(credentialsStorage = SecureCredentialsStorage(applicationContext))
+                AppViewModel(
+                    repository = FakeMessengerRepository(LocalMessagesCache(applicationContext)),
+                    credentialsStorage = SecureCredentialsStorage(applicationContext),
+                )
             })
             var currentScreen: Screen by remember {
                 mutableStateOf(if (appViewModel.isLoggedIn()) Screen.ChatList else Screen.Login)
