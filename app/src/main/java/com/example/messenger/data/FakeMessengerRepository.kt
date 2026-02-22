@@ -5,7 +5,9 @@ import com.example.messenger.model.Message
 import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicLong
 
-class FakeMessengerRepository : MessengerRepository {
+class FakeMessengerRepository(
+    private val localMessagesCache: LocalMessagesCache? = null,
+) : MessengerRepository {
     private val messageIdCounter = AtomicLong(100)
 
     private val chats = listOf(
@@ -27,6 +29,10 @@ class FakeMessengerRepository : MessengerRepository {
         ),
     )
 
+    init {
+        hydrateFromCache()
+    }
+
     override suspend fun getChats(): List<Chat> {
         delay(350)
         return chats
@@ -34,6 +40,10 @@ class FakeMessengerRepository : MessengerRepository {
 
     override suspend fun getMessages(chatId: String): List<Message> {
         delay(250)
+        val cached = localMessagesCache?.read(chatId)
+        if (cached != null) {
+            messagesByChat[chatId] = cached.toMutableList()
+        }
         return messagesByChat[chatId]?.toList().orEmpty()
     }
 
@@ -58,6 +68,7 @@ class FakeMessengerRepository : MessengerRepository {
             timestamp = System.currentTimeMillis(),
         )
         messagesByChat.getOrPut(chatId) { mutableListOf() }.add(message)
+        persist(chatId)
         return message
     }
 
@@ -74,5 +85,20 @@ class FakeMessengerRepository : MessengerRepository {
         )
 
         messagesByChat.getOrPut(chatId) { mutableListOf() }.add(incoming)
+        persist(chatId)
+    }
+
+    private fun hydrateFromCache() {
+        chats.forEach { chat ->
+            val cachedMessages = localMessagesCache?.read(chat.id) ?: return@forEach
+            messagesByChat[chat.id] = cachedMessages.toMutableList()
+            val maxId = cachedMessages.maxOfOrNull { it.id } ?: return@forEach
+            messageIdCounter.updateAndGet { current -> maxOf(current, maxId) }
+        }
+    }
+
+    private fun persist(chatId: String) {
+        val messages = messagesByChat[chatId]?.toList().orEmpty()
+        localMessagesCache?.save(chatId, messages)
     }
 }
