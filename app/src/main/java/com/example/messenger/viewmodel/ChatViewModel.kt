@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 data class ChatUiState(
     val loading: Boolean = false,
     val messages: List<Message> = emptyList(),
+    val reactionsByMessageId: Map<Long, List<String>> = emptyMap(),
 )
 
 class ChatViewModel(
@@ -35,11 +36,19 @@ class ChatViewModel(
         }
     }
 
-    fun sendTestMessage() {
+    fun sendMessage(text: String) {
+        if (text.isBlank()) return
         viewModelScope.launch {
-            val newMessage = repository.sendTestMessage(chatId, "Тестовое сообщение")
+            val newMessage = repository.sendMessage(chatId, text.trim())
             _uiState.value = _uiState.value.copy(messages = _uiState.value.messages + newMessage)
         }
+    }
+
+    fun addReaction(messageId: Long, reaction: String) {
+        val current = _uiState.value.reactionsByMessageId[messageId].orEmpty()
+        _uiState.value = _uiState.value.copy(
+            reactionsByMessageId = _uiState.value.reactionsByMessageId + (messageId to (current + reaction)),
+        )
     }
 
     private fun startPolling() {

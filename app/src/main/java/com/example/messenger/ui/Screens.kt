@@ -1,19 +1,24 @@
 package com.example.messenger.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -76,6 +82,7 @@ fun ChatListScreen(
     chats: List<Chat>,
     onChatClick: (Chat) -> Unit,
     onLogout: () -> Unit,
+    onNewMessageClick: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -89,7 +96,12 @@ fun ChatListScreen(
                 Text("Чаты", style = MaterialTheme.typography.titleLarge)
                 TextButton(onClick = onLogout) { Text("Выйти") }
             }
-        }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onNewMessageClick) {
+                Text("✎")
+            }
+        },
     ) { padding ->
         if (loading) {
             Column(
@@ -125,9 +137,13 @@ fun ChatScreen(
     title: String,
     loading: Boolean,
     messages: List<Message>,
+    reactionsByMessageId: Map<Long, List<String>>,
     onBack: () -> Unit,
-    onSendTest: () -> Unit,
+    onSend: (String) -> Unit,
+    onAddReaction: (Long, String) -> Unit,
 ) {
+    var messageText by remember { mutableStateOf("") }
+
     Scaffold(
         topBar = {
             Row(
@@ -139,7 +155,31 @@ fun ChatScreen(
             ) {
                 TextButton(onClick = onBack) { Text("Назад") }
                 Text(title, fontWeight = FontWeight.Bold)
-                Button(onClick = onSendTest) { Text("Тест +") }
+                Text(" ")
+            }
+        },
+        bottomBar = {
+            Surface(shadowElevation = 6.dp) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = messageText,
+                        onValueChange = { messageText = it },
+                        placeholder = { Text("Сообщение") },
+                    )
+                    Button(onClick = {
+                        onSend(messageText)
+                        messageText = ""
+                    }) {
+                        Text("Отпр.")
+                    }
+                }
             }
         },
     ) { padding ->
@@ -155,15 +195,43 @@ fun ChatScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(Color(0xFFEFF4FA))
                     .padding(padding)
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(messages) { msg ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(msg.sender, fontWeight = FontWeight.SemiBold)
-                            Text(msg.text, modifier = Modifier.padding(top = 2.dp))
+                    val isMine = msg.sender == "Me"
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = if (isMine) Alignment.End else Alignment.Start,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .widthIn(max = 300.dp)
+                                .background(
+                                    color = if (isMine) Color(0xFFDCF8C6) else Color.White,
+                                    shape = MaterialTheme.shapes.medium,
+                                )
+                                .padding(12.dp),
+                        ) {
+                            Column {
+                                if (!isMine) {
+                                    Text(msg.sender, fontWeight = FontWeight.SemiBold)
+                                }
+                                Text(msg.text, modifier = Modifier.padding(top = 2.dp))
+                            }
+                        }
+                        val reactions = reactionsByMessageId[msg.id].orEmpty()
+                        if (reactions.isNotEmpty()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                reactions.forEach { Text(it) }
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("👍", "❤️", "🔥").forEach { emoji ->
+                                TextButton(onClick = { onAddReaction(msg.id, emoji) }) { Text(emoji) }
+                            }
                         }
                     }
                 }
