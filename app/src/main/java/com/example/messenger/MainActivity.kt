@@ -70,6 +70,9 @@ class MainActivity : ComponentActivity() {
                             appViewModel.logout()
                             currentScreen = Screen.Login
                         },
+                        onNewMessageClick = {
+                            state.chats.firstOrNull()?.let { currentScreen = Screen.ChatDetails(it) }
+                        },
                     )
                 }
 
@@ -87,8 +90,10 @@ class MainActivity : ComponentActivity() {
                         title = screen.chat.title,
                         loading = state.loading,
                         messages = state.messages,
+                        reactionsByMessageId = state.reactionsByMessageId,
                         onBack = { currentScreen = Screen.ChatList },
-                        onSendTest = vm::sendTestMessage,
+                        onSend = vm::sendMessage,
+                        onAddReaction = vm::addReaction,
                     )
                 }
             }

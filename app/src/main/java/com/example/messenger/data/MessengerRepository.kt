@@ -7,5 +7,5 @@ interface MessengerRepository {
     suspend fun getChats(): List<Chat>
     suspend fun getMessages(chatId: String): List<Message>
     suspend fun fetchNewMessages(chatId: String, afterMessageId: Long?): List<Message>
-    suspend fun sendTestMessage(chatId: String, text: String): Message
+    suspend fun sendMessage(chatId: String, text: String): Message
 }

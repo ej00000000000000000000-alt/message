@@ -58,7 +58,7 @@ class FakeMessengerRepository(
         }
     }
 
-    override suspend fun sendTestMessage(chatId: String, text: String): Message {
+    override suspend fun sendMessage(chatId: String, text: String): Message {
         delay(200)
         val message = Message(
             id = messageIdCounter.incrementAndGet(),
